@@ -1,0 +1,56 @@
+# Виртуальное окружение
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# PyCharm
+.idea/
+*.iml
+.vscode/
+
+# Файлы Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.log
+
+# База данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Файлы окружения
+.env
+.env.local
+.env.*.local
+
+# Docker
+*.pid
+*.pid.lock
+
+# Файлы ОС
+.DS_Store
+Thumbs.db
+
+# Результаты тестов
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Логи
+logs/
+*.log
+
+# Токены и секреты
+*.pem
+*.key
+*.crt
+
+# Временные файлы
+*.tmp
+*.temp
