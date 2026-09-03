@@ -37,8 +37,8 @@ async def add_prices():
             {"category": "kitchen", "key": "pantry_pantry_3", "value": 95},
 
             # Шкаф - каркасы
-            {"category": "wardrobe", "key": "frame_standard", "value": 40},
-            {"category": "wardrobe", "key": "frame_compact", "value": 60},
+            {"category": "wardrobe", "key": "frame_standard", "value": 60},
+            {"category": "wardrobe", "key": "frame_compact", "value": 40},
             {"category": "wardrobe", "key": "frame_extended", "value": 80},
             {"category": "wardrobe", "key": "shelf", "value": 7},
             {"category": "wardrobe", "key": "drawer", "value": 12},

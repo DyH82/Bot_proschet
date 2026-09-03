@@ -14,29 +14,19 @@ def main_menu_kb() -> InlineKeyboardMarkup:
 # --- Выбор категории на кухне (верх/низ/пеналы) ---
 def kitchen_category_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="📦 Верхние ящики", callback_data="kitchen_upper")
-    builder.button(text="📦 Нижние ящики", callback_data="kitchen_lower")
+    builder.button(text="📦 Верхние модули", callback_data="kitchen_upper")
+    builder.button(text="📦 Нижние модули", callback_data="kitchen_lower")
     builder.button(text="🗄️ Пеналы", callback_data="kitchen_pantry")
     builder.button(text="🔙 Назад", callback_data="main_menu")
     builder.adjust(1)
     return builder.as_markup()
 
-# --- Клавиатура для выбора типа (с закрепленными кнопками внизу) ---
-def item_list_kb_with_controls(items: List[Dict[str, str]], prefix: str) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    for item in items:
-        builder.button(text=item["text"], callback_data=f"{prefix}_{item['id']}")
-    builder.button(text="✅ Закончить выбор", callback_data="finish_selection")
-    builder.button(text="📋 Другая категория", callback_data="back_to_kitchen_categories")
-    builder.adjust(1, 1)
-    return builder.as_markup()
-
 # --- Выбор каркаса шкафа ---
 def wardrobe_frame_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="📐 Каркас до 800мм", callback_data="frame_standard")
-    builder.button(text="📐 Каркас до 1500мм", callback_data="frame_compact")
-    builder.button(text="📐 Каркас до 2500мм", callback_data="frame_extended")
+    builder.button(text="📐 Компактный", callback_data="frame_compact")
+    builder.button(text="📐 Стандартный", callback_data="frame_standard")
+    builder.button(text="📐 Увеличенный", callback_data="frame_extended")
     builder.button(text="🔙 Назад", callback_data="main_menu")
     builder.adjust(1)
     return builder.as_markup()
@@ -65,13 +55,13 @@ def extras_kb(selected: List[str] = None) -> InlineKeyboardMarkup:
     builder.adjust(1)
     return builder.as_markup()
 
-# --- Клавиатура после расчета (с кнопкой "Написать в Telegram" через бота) ---
+# --- Клавиатура после расчета ---
 def after_calculation_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="➕ Добавить детали", callback_data="add_details")
-    builder.button(text="🔄 Новый расчет", callback_data="new_calculation")
+    builder.button(text="➕ Добавить", callback_data="add_details")
     builder.button(text="📞 Оставить контакт", callback_data="leave_contact")
     builder.button(text="✉️ Написать в Telegram", callback_data="write_to_admin")
+    builder.button(text="🔄 Новый расчет", callback_data="new_calculation")
     builder.button(text="🏠 Главное меню", callback_data="main_menu")
     builder.adjust(1)
     return builder.as_markup()

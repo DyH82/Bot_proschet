@@ -31,7 +31,18 @@ PANTRY_TYPES: List[Dict[str, str]] = [
 
 # --- Шкаф (3 каркаса) с картинками ---
 WARDROBE_FRAMES: List[Dict[str, str]] = [
-    {"id": "standard", "text": "Ширина до 800мм", "image": "app/images/standard.jpg"},
-    {"id": "compact", "text": "Ширина до 1500мм", "image": "app/images/compact.jpg"},
-    {"id": "extended", "text": "ширина до 2500мм", "image": "app/images/extended.jpg"},
+    {"id": "compact", "text": "Ширина 150-800мм", "image": "app/images/compact.jpg"},
+    {"id": "standard", "text": "Ширина 801-1500мм", "image": "app/images/standard.jpg"},
+    {"id": "extended", "text": "ширина 1501-2500мм", "image": "app/images/extended.jpg"},
+]
+
+# --- Полки для шкафа (с картинками) ---
+SHELF_TYPES: List[Dict[str, str]] = [
+    {"id": "shelf_1", "text": "Полка 1", "image": "app/images/shelf_1.jpg"},
+]
+
+# --- Выдвижные ящики для шкафа (с картинками) ---
+DRAWER_TYPES: List[Dict[str, str]] = [
+    {"id": "drawer_1", "text": "Ящик 1", "image": "app/images/drawer_1.jpg"},
+    {"id": "drawer_2", "text": "Ящик 2", "image": "app/images/drawer_2.jpg"},
 ]
