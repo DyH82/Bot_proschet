@@ -12,12 +12,14 @@ class CalcState(StatesGroup):
     KITCHEN_TYPE_SELECT = State()  # Выбор типа из списка
     KITCHEN_ITEM_COUNT = State()  # Ввод количества для конкретного типа
     KITCHEN_EXTRAS = State()  # Допы
+    KITCHEN_EXTRAS_COUNT = State()  # ← НОВОЕ: ввод количества для допа
 
     # Шкаф
     WARDROBE_FRAME = State()
     WARDROBE_SHELVES = State()
     WARDROBE_DRAWERS = State()
     WARDROBE_EXTRAS = State()
+    WARDROBE_EXTRAS_COUNT = State()
     WARDROBE_ADD_DETAILS = State()
 
     # Контакт

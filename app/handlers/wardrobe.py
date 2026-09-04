@@ -13,6 +13,17 @@ from app.database import AsyncSessionLocal
 
 router = Router()
 
+# ==================== НАЗВАНИЯ ДОПОВ ====================
+extras_names = {
+    "lighting": "💡 Подсветка",
+    "gola": "🔘 Гола",
+    "extra_1": "🔧 Доп 1",
+    "extra_2": "🔧 Доп 2",
+    "extra_3": "🔧 Доп 3",
+    "extra_4": "🔧 Доп 4",
+    "extra_5": "🔧 Доп 5"
+}
+
 
 # ==================== ВЫБОР КАРКАСА ====================
 
@@ -421,7 +432,7 @@ async def drawer_done(callback: CallbackQuery, state: FSMContext):
         "Когда закончите — нажмите «Рассчитать стоимость»."
     )
 
-    await callback.message.answer(text, reply_markup=extras_kb())
+    await callback.message.answer(text, reply_markup=extras_kb(), parse_mode=None)
 
 
 # ==================== ДОП. УСЛУГИ ====================
@@ -443,15 +454,106 @@ async def wardrobe_extras_toggle(callback: CallbackQuery, state: FSMContext):
 
     if callback.data.startswith("extras_"):
         service = callback.data.replace("extras_", "")
-        if service in wardrobe_extras:
-            wardrobe_extras.remove(service)
+        await state.update_data(current_extra_service=service)
+        await state.set_state(CalcState.WARDROBE_EXTRAS_COUNT)
+
+        # Определяем единицу измерения
+        if service == "lighting":
+            unit = "метров (погонных)"
         else:
-            wardrobe_extras.append(service)
-        await state.update_data(current_wardrobe_extras=wardrobe_extras)
-        await callback.message.edit_reply_markup(
-            reply_markup=extras_kb(wardrobe_extras)
+            unit = "штук"
+
+        await callback.message.answer(
+            f"✏️ Введите количество {unit} для **{extras_names.get(service, service)}**:\n"
+            "Введите число (0 — чтобы убрать)"
         )
         await callback.answer()
+
+
+# ==================== ВВОД КОЛИЧЕСТВА ДЛЯ ДОПОВ ШКАФА ====================
+
+@router.message(StateFilter(CalcState.WARDROBE_EXTRAS_COUNT))
+async def wardrobe_extras_count_entered(message: Message, state: FSMContext):
+    try:
+        count = float(message.text.replace(",", "."))
+        if count < 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("❌ Введите положительное число (например: 2.5 или 3)")
+        return
+
+    data = await state.get_data()
+    service = data.get("current_extra_service")
+    wardrobe_extras = data.get("current_wardrobe_extras", [])
+    wardrobe_extras_counts = data.get("current_wardrobe_extras_counts", {})
+
+    if count > 0:
+        if service not in wardrobe_extras:
+            wardrobe_extras.append(service)
+        wardrobe_extras_counts[service] = count
+        unit = "м" if service == "lighting" else "шт"
+        await message.answer(f"✅ Добавлено: {extras_names.get(service, service)} — {count} {unit}")
+    else:
+        if service in wardrobe_extras:
+            wardrobe_extras.remove(service)
+        if service in wardrobe_extras_counts:
+            del wardrobe_extras_counts[service]
+        await message.answer(f"❌ Убран: {extras_names.get(service, service)}")
+
+    await state.update_data(current_wardrobe_extras=wardrobe_extras)
+    await state.update_data(current_wardrobe_extras_counts=wardrobe_extras_counts)
+    await state.set_state(CalcState.WARDROBE_EXTRAS)
+
+    # Показываем обновлённый список
+    await show_wardrobe_extras_summary(message, state)
+
+
+async def show_wardrobe_extras_summary(message: Message, state: FSMContext):
+    """Показывает текущий список выбранных допов для шкафа с количеством"""
+    data = await state.get_data()
+    wardrobe_extras = data.get("current_wardrobe_extras", [])
+    wardrobe_extras_counts = data.get("current_wardrobe_extras_counts", {})
+
+    if not wardrobe_extras:
+        await message.answer("📋 Вы не выбрали ни одного допа")
+        return
+
+    # Получаем цены на услуги
+    async with AsyncSessionLocal() as session:
+        price_service = PriceService(session)
+        add_prices = await price_service.get_additional_prices()
+
+        services_text = "\n".join([
+            f"• {name}: {add_prices.get(key, 0):,.0f} руб"
+            for key, name in [
+                ("lighting", "💡 Подсветка"),
+                ("extra_1", "🔧 Доп 1"),
+                ("extra_2", "🔧 Доп 2"),
+                ("extra_3", "🔧 Доп 3"),
+                ("extra_4", "🔧 Доп 4"),
+                ("extra_5", "🔧 Доп 5")
+            ]
+        ])
+
+    data = await state.get_data()
+    frame_names = {
+        "standard": "150-800мм",
+        "compact": "801-1500мм",
+        "extended": "1501-2500мм"
+    }
+
+    text = (
+        f"✅ **Шкаф №{data.get('current_wardrobe_index', 1)}**\n"
+        f"📐 Каркас: {frame_names.get(data.get('current_frame_type'), data.get('current_frame_type'))}\n"
+        f"📚 Полки: {data.get('current_shelves')} шт\n"
+        f"📦 Ящики: {data.get('current_drawers')} шт\n\n"
+        "**Дополнительные услуги:**\n"
+        f"{services_text}\n\n"
+        "Нажмите на услугу, чтобы добавить/убрать.\n"
+        "Когда закончите — нажмите «Рассчитать стоимость»."
+    )
+
+    await message.answer(text, reply_markup=extras_kb())
 
 
 # ==================== НАВИГАЦИЯ ====================
@@ -473,39 +575,33 @@ async def back_to_shelves(callback: CallbackQuery, state: FSMContext):
 # ==================== СОХРАНЕНИЕ И СМЕТА ====================
 
 async def save_wardrobe_and_show_result(callback: CallbackQuery, state: FSMContext):
-    """Сохраняем текущий шкаф в список и показываем общую смету."""
-
     data = await state.get_data()
 
-    # Получаем старые данные из wardrobe_items (если редактируем)
     wardrobe_items = data.get("wardrobe_items", [])
     editing_index = data.get("editing_wardrobe_index")
 
-    # Текущие данные (новые)
     current_frame_type = data.get("current_frame_type")
     current_shelves = data.get("current_shelves", 0)
     current_drawers = data.get("current_drawers", 0)
     current_extras = data.get("current_wardrobe_extras", [])
+    current_extras_counts = data.get("current_wardrobe_extras_counts", {})
 
-    # Если редактируем существующий шкаф
     if editing_index is not None and editing_index < len(wardrobe_items):
         old_wardrobe = wardrobe_items[editing_index]
-        old_shelves = old_wardrobe.get("shelves", 0)
-        old_drawers = old_wardrobe.get("drawers", 0)
-        old_extras = old_wardrobe.get("extras", [])
         old_frame_type = old_wardrobe.get("frame_type")
+        old_extras = old_wardrobe.get("extras", {})
 
-        # ✅ СУММИРУЕМ старые и новые значения
-        total_shelves = old_shelves + current_shelves
-        total_drawers = old_drawers + current_drawers
-        # Объединяем допы (убираем дубли)
-        merged_extras = list(set(old_extras + current_extras))
+        # ✅ ОБЪЕДИНЯЕМ ДОПЫ
+        merged_extras = old_extras.copy()
+        for extra in current_extras:
+            if extra in current_extras_counts:
+                merged_extras[extra] = current_extras_counts[extra]
 
         wardrobe_item = {
             "index": data.get("current_wardrobe_index", 1),
-            "frame_type": old_frame_type,  # Каркас остаётся тот же
-            "shelves": total_shelves,
-            "drawers": total_drawers,
+            "frame_type": old_frame_type,
+            "shelves": current_shelves,
+            "drawers": current_drawers,
             "extras": merged_extras
         }
 
@@ -515,21 +611,26 @@ async def save_wardrobe_and_show_result(callback: CallbackQuery, state: FSMConte
 
     else:
         # Новый шкаф
+        extras_dict = {}
+        for extra in current_extras:
+            if extra in current_extras_counts:
+                extras_dict[extra] = current_extras_counts[extra]
+
         wardrobe_item = {
             "index": data.get("current_wardrobe_index", 1),
             "frame_type": current_frame_type,
             "shelves": current_shelves,
             "drawers": current_drawers,
-            "extras": current_extras
+            "extras": extras_dict
         }
         wardrobe_items.append(wardrobe_item)
         await state.update_data(wardrobe_items=wardrobe_items)
 
-    # Очищаем временные данные
     await state.update_data(current_frame_type=None)
     await state.update_data(current_shelves=0)
     await state.update_data(current_drawers=0)
     await state.update_data(current_wardrobe_extras=[])
+    await state.update_data(current_wardrobe_extras_counts={})
     await state.update_data(selected_shelves={})
     await state.update_data(selected_drawers={})
 
